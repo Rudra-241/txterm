@@ -5,11 +5,13 @@ import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { io } from "socket.io-client";
 import { jwtDecode } from "jwt-decode";
-import chalk from 'chalk';
+import chalk from "chalk";
 import pkg from "enquirer";
 const { prompt } = pkg;
 const API_BASE_URL = "http://localhost:3000";
-
+const sessionIDFilePath = `${dirname(
+  fileURLToPath(import.meta.url)
+)}/sessionID.txt`;
 const register = async (username, password) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/api/register`, null, {
@@ -33,9 +35,7 @@ const login = async (username, password) => {
       },
     });
     const content = response.data.uid;
-    const sessionIDFilePath = `${dirname(
-      fileURLToPath(import.meta.url)
-    )}/sessionID.txt`;
+
     writeFile(sessionIDFilePath, content, (err) => {
       if (err) {
         console.error(err);
@@ -51,10 +51,6 @@ const login = async (username, password) => {
   }
 };
 const chat = async (recipient) => {
-  const sessionIDFilePath = `${dirname(
-    fileURLToPath(import.meta.url)
-  )}/sessionID.txt`;
-
   try {
     const sID = await fsPromises.readFile(sessionIDFilePath, "utf-8");
     const username = jwtDecode(sID).username;
@@ -68,9 +64,11 @@ const chat = async (recipient) => {
       );
       const socket = io(API_BASE_URL);
       console.log("private message" + username);
-      // vulnerable: one can modify the username and receive someone else's messages 
+      // vulnerable: one can modify the username and receive someone else's messages
       socket.on("PM" + username.trim(), ({ content, from }) => {
-        console.log(chalk.green.dim.bold(`[${from}]: `)+chalk.yellow(`${content}`));
+        console.log(
+          chalk.green.dim.bold(`[${from}]: `) + chalk.yellow(`${content}`)
+        );
       });
       socket.on("chat message", ({ content, to, from }) => {
         console.log(`${from}:${to} :${content}`);
@@ -88,9 +86,8 @@ const chat = async (recipient) => {
           to: recipient,
         });
       }
-
     } catch (axiosError) {
-      console.log("User terminated the process or an error occured")
+      console.log("User terminated the process or an error occured");
       process.exit(0);
     }
   } catch (fsError) {
@@ -98,4 +95,19 @@ const chat = async (recipient) => {
   }
 };
 
-export { chat, login, register };
+const addNewFriend = async (username) => {
+  const sID = await fsPromises.readFile(sessionIDFilePath, "utf-8");
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}/api/chat/add?name=${username}`,{},
+      {
+        headers: { "X-sessionID": sID, "Content-Type": "application/json" },
+      }
+    );
+    console.log(response.data.message);
+  } catch (error) {
+    console.error("Error adding new friend:",error.message);
+  }
+};
+
+export { chat, login, register, addNewFriend };

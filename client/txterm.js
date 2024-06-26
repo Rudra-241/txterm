@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { login, register, chat } from "./index.js";
+import { login, register, chat, addNewFriend } from "./index.js";
 import { program } from "commander";
 import pkg from "enquirer";
 const { prompt } = pkg;
@@ -37,8 +37,10 @@ program
     ]);
     register(response.username, response.password);
   })
-  .option("-c, --chat <type>", "Start chatting", async (options) => {
+  .option("-c, --chat <recipient>", "Start chatting", async (options) => {
     chat(options);
+  }).option("-a, --add <username>", "Add a new friend", async (options) => {
+    addNewFriend(options);
   });
 
 program.parse(process.argv);
