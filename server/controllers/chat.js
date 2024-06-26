@@ -1,5 +1,7 @@
 import { server } from "../index.js";
 import { Server } from "socket.io";
+import { user } from "../models/user.js";
+
 const onlineUsersAndtheirSocketIDs = new Map([]);
 const createPrivateRoom = (req, res) => {
   const io = new Server(server);
@@ -7,7 +9,10 @@ const createPrivateRoom = (req, res) => {
     onlineUsersAndtheirSocketIDs.set(socket.id, req.user.username);
     console.log(onlineUsersAndtheirSocketIDs);
     socket.on("chat message", (msg) => {
-      io.emit("PM"+onlineUsersAndtheirSocketIDs.get(socket.id), "You aren't authorized to send public messages");
+      io.emit(
+        "PM" + onlineUsersAndtheirSocketIDs.get(socket.id),
+        "You aren't authorized to send public messages"
+      );
     });
     socket.on("private message", ({ message, to }) => {
       console.log("private message" + to);
@@ -26,10 +31,23 @@ const createPrivateRoom = (req, res) => {
   res.json({ message: "succesfully connected" });
 };
 
-function getByValue(map, searchValue) {
-  for (let [key, value] of map.entries()) {
-    if (value === searchValue) return key;
-  }
-}
+const addNewFriend = async (req, res) => {
+  const friendname = req.query.name;
 
-export { createPrivateRoom };
+  const friend = await user.findOne({ username: friendname });
+  if (!friend) {
+    return res.status(400).json({ error: `No user named ${friendname} found` });
+  }
+  const friends = (await user.findById(req.user._id)).friends;
+
+  if (friends.includes(friend._id)) {
+    return res.json({ message: "Already a friend" });
+  }
+
+  await user.findByIdAndUpdate(req.user._id, {
+    $push: { friends: friend._id },
+  });
+  return res.json({ message: "success" });
+};
+
+export { createPrivateRoom, addNewFriend };
