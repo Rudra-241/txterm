@@ -1,25 +1,27 @@
 #!/usr/bin/env node
-import { login, register, chat, addNewFriend } from "./index.js";
+import { login, register, chat, addNewFriend, addNewChannel } from "./index.js";
 import cfonts from "cfonts";
 import { program } from "commander";
 import pkg from "enquirer";
 const { prompt } = pkg;
 
-cfonts.say("TXTERM!", {
-  font: "block",
-  align: "center",
-  colors: ["red", "#f80"],
-  background: "transparent",
-  letterSpacing: 1,
-  lineHeight: 0.5,
-  space: true,
-  maxLength: "0",
-  gradient: ["red", "#f80"],
-  independentGradient: true,
-  transitionGradient: true,
-  rawMode: false,
-  env: "node",
-});
+const printWelcomeMessage = () => {
+  cfonts.say("TxTerm", {
+    font: "block",
+    align: "center",
+    colors: ["red", "#f80"],
+    background: "transparent",
+    letterSpacing: 1,
+    lineHeight: 0.5,
+    space: true,
+    maxLength: "0",
+    gradient: ["red", "#f80"],
+    independentGradient: true,
+    transitionGradient: true,
+    rawMode: false,
+    env: "node",
+  });
+};
 
 program
   .version("1.0.0")
@@ -54,8 +56,20 @@ program
     ]);
     register(response.username, response.password);
   })
-  .option("-c, --chat <recipient>", "Start chatting", async (options) => {
-    chat(options);
+  .option(
+    "-c, --chat <recipient>",
+    "private message someone",
+    async (options) => {
+      printWelcomeMessage();
+      chat(options, "PM");
+    }
+  )
+  .option("-j, --join <channel>", "join a channel", async (options) => {
+    printWelcomeMessage();
+    chat(options, "JC");
+  })
+  .option("-C, --create <recipient>", "create a channel", async (options) => {
+    addNewChannel(options);
   })
   .option("-a, --add <username>", "Add a new friend", async (options) => {
     addNewFriend(options);

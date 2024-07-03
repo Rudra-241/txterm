@@ -11,6 +11,7 @@ import { handleSocketSubscription } from "./middlewares/socketSubscription.js";
 import { router as registerRoute } from "./routes/register.js";
 import { router as loginRoute } from "./routes/login.js";
 import { router as chatRoute } from "./routes/chat.js";
+import { router as channelRoute } from "./routes/channels.js";
 
 const port = process.env.PORT || 3000;
 const app = express();
@@ -32,6 +33,7 @@ const setupMiddlewares = () => {
   app.use("/api/register", registerRoute);
   app.use("/api/login", loginRoute);
   app.use("/api/chat", restrictToLoggedinUserOnly, chatRoute);
+  app.use("/channels", restrictToLoggedinUserOnly, channelRoute);
 };
 
 const setupSocketMiddleware = () => {
@@ -46,7 +48,7 @@ const handleAuth = async (socket) => {
     } else {
       socket.authState = socket.AUTHENTICATED;
       console.log("Socket authenticated", user);
-
+      handleChannelMessages(socket, user);
       handlePrivateMessages(socket, user);
     }
   }
@@ -54,6 +56,21 @@ const handleAuth = async (socket) => {
 
 const handlePrivateMessages = async (socket, user) => {
   for await (let data of socket.receiver("private message", {
+    waitForAuth: true,
+  })) {
+    if (!user) {
+      socket.disconnect(3200, "Unauthorized");
+    }
+    socket.exchange.transmitPublish(data.to, {
+      msg: data,
+      from: user.username,
+    });
+    console.log(data, socket.id);
+  }
+};
+
+const handleChannelMessages = async (socket, user) => {
+  for await (let data of socket.receiver("channel message", {
     waitForAuth: true,
   })) {
     if (!user) {

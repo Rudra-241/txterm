@@ -68,15 +68,20 @@ const handleSocketError = async (socket, sID, username) => {
   for await (let { error } of socket.listener("error")) {
     console.error(error);
     socket.transmit("auth", { sessionID: sID });
-    socket.unsubscribe(username); //TODO: 
+    socket.unsubscribe(username); //TODO:
     handleIncomingMessages(username, sID);
   }
 };
-
+// pvtMsg doesn't necessarily mean PMs, changes required
 const handleIncomingMessages = async (socket, username, sID) => {
-  let incomingPvtMsgs = socket.subscribe(username, { data: sID });
+  let incomingPvtMsgs = socket.subscribe(username, {
+    data: { type: "self", sessionID: sID },
+  });
   for await (let pvtMsg of incomingPvtMsgs) {
-    console.log(chalk.green.bold(` ${pvtMsg.from}: `)+chalk.magenta(`${pvtMsg.msg.message} `));
+    console.log(
+      chalk.green.bold(`${pvtMsg.from}: `) +
+        chalk.magenta(`${pvtMsg.msg.message} `)
+    );
   }
 };
 
@@ -99,7 +104,26 @@ const handleSocketConnect = async (socket, sID, recipient) => {
   }
 };
 
-const chat = async (recipient) => {
+const handleChannelConnect = async (socket, sID, channelName) => {
+  for await (let event of socket.listener("connect")) {
+    socket.transmit("auth", { sessionID: sID });
+
+    while (true) {
+      let msg = await prompt({
+        type: "input",
+        name: "message",
+        message: ">",
+      });
+      msg = msg.message;
+      socket.transmit("channel message", {
+        message: msg,
+        to: channelName,
+      });
+    }
+  }
+};
+// recipient can also be a channel when type === "JC"
+const chat = async (recipient, type) => {
   try {
     const { sID, username } = await getCurrentUser();
 
@@ -112,7 +136,12 @@ const chat = async (recipient) => {
 
       handleSocketError(socket, sID, username);
       handleIncomingMessages(socket, username, sID);
-      handleSocketConnect(socket, sID, recipient);
+
+      if (type === "PM") handleSocketConnect(socket, sID, recipient);
+      if (type === "JC") {
+        socket.subscribe(recipient, { data: { type: "channel" } });
+        handleChannelConnect(socket, sID, recipient);
+      }
     } catch (axiosError) {
       console.log("User terminated the process or an error occurred");
       process.exit(0);
@@ -138,4 +167,20 @@ const addNewFriend = async (username) => {
   }
 };
 
-export { chat, login, register, addNewFriend };
+const addNewChannel = async (channelNamw) => {
+  try {
+    const { sID } = await getCurrentUser();
+    const response = await axios.post(
+      `${API_BASE_URL}/api/channels/add?name=${channelNamw}`,
+      {},
+      {
+        headers: { "X-sessionID": sID, "Content-Type": "application/json" },
+      }
+    );
+    console.log(response.data.message);
+  } catch (error) {
+    console.error("Error adding new friend:", error.message);
+  }
+};
+
+export { chat, login, register, addNewFriend, addNewChannel };
