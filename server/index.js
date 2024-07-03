@@ -2,8 +2,8 @@ import express from "express";
 import mongoose from "mongoose";
 import { createServer } from "node:http";
 import socketClusterServer from "socketcluster-server";
-import cookieParser from "cookie-parser";
 import { restrictToLoggedinUserOnly, checkAuth } from "./middlewares/authentication.js";
+import { handleSocketSubscription } from "./middlewares/socketSubscription.js";
 import { router as registerRoute } from "./routes/register.js";
 import { router as loginRoute } from "./routes/login.js";
 import { router as chatRoute } from "./routes/chat.js";
@@ -25,28 +25,12 @@ const connectToDatabase = async () => {
 //TOO MUCH REFACTORING AND ERROR HANDLING NEEDED
 
 const setupMiddlewares = () => {
-  app.use(cookieParser());
   app.use("/api/register", registerRoute);
   app.use("/api/login", loginRoute);
   app.use("/api/chat", restrictToLoggedinUserOnly, chatRoute);
 };
 
-const handleSocketSubscription = async (middlewareStream) => {
-  for await (let action of middlewareStream) {
-    if (action.type === action.SUBSCRIBE) {
-      const realUsername = (await checkAuth(action.data)).username;
-      if (action.channel !== realUsername) {
-        console.log(realUsername);
-        action.block("Unauthorized");
-        action.socket.disconnect(3201, "Bad User");
-      } else {
-        action.allow();
-      }
-    } else {
-      action.allow();
-    }
-  }
-};
+
 
 const setupSocketMiddleware = () => {
   agServer.setMiddleware(agServer.MIDDLEWARE_INBOUND, handleSocketSubscription);
