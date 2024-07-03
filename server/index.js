@@ -1,14 +1,18 @@
 import express from "express";
 import mongoose from "mongoose";
 import { createServer } from "node:http";
+import "dotenv/config";
 import socketClusterServer from "socketcluster-server";
-import { restrictToLoggedinUserOnly, checkAuth } from "./middlewares/authentication.js";
+import {
+  restrictToLoggedinUserOnly,
+  checkAuth,
+} from "./middlewares/authentication.js";
 import { handleSocketSubscription } from "./middlewares/socketSubscription.js";
 import { router as registerRoute } from "./routes/register.js";
 import { router as loginRoute } from "./routes/login.js";
 import { router as chatRoute } from "./routes/chat.js";
 
-const port = 3000;
+const port = process.env.PORT || 3000;
 const app = express();
 const server = createServer(app);
 const agServer = socketClusterServer.attach(server, { path: "/api/chat" });
@@ -30,8 +34,6 @@ const setupMiddlewares = () => {
   app.use("/api/chat", restrictToLoggedinUserOnly, chatRoute);
 };
 
-
-
 const setupSocketMiddleware = () => {
   agServer.setMiddleware(agServer.MIDDLEWARE_INBOUND, handleSocketSubscription);
 };
@@ -51,7 +53,9 @@ const handleAuth = async (socket) => {
 };
 
 const handlePrivateMessages = async (socket, user) => {
-  for await (let data of socket.receiver("private message", { waitForAuth: true })) {
+  for await (let data of socket.receiver("private message", {
+    waitForAuth: true,
+  })) {
     if (!user) {
       socket.disconnect(3200, "Unauthorized");
     }

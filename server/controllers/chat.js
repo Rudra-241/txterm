@@ -1,5 +1,3 @@
-import { agServer } from "../index.js";
-
 import { user } from "../models/user.js";
 
 const onlineUsersAndtheirSocketIDs = new Map([]);

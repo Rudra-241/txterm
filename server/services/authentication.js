@@ -1,6 +1,6 @@
 import JWT from "jsonwebtoken";
-
-const secret = "765v67@$#nfinkqweo293798";
+import 'dotenv/config'
+const secret = process.env.JWT_SECRET;
 
 function createTokenForUser(user) {
   const payload = {

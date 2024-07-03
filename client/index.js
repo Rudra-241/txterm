@@ -68,7 +68,7 @@ const handleSocketError = async (socket, sID, username) => {
   for await (let { error } of socket.listener("error")) {
     console.error(error);
     socket.transmit("auth", { sessionID: sID });
-    socket.unsubscribe(username);
+    socket.unsubscribe(username); //TODO: 
     handleIncomingMessages(username, sID);
   }
 };
@@ -76,7 +76,7 @@ const handleSocketError = async (socket, sID, username) => {
 const handleIncomingMessages = async (socket, username, sID) => {
   let incomingPvtMsgs = socket.subscribe(username, { data: sID });
   for await (let pvtMsg of incomingPvtMsgs) {
-    console.log(pvtMsg);
+    console.log(chalk.green.bold(` ${pvtMsg.from}: `)+chalk.magenta(`${pvtMsg.msg.message} `));
   }
 };
 
