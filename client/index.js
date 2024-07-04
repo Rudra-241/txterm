@@ -85,6 +85,19 @@ const handleIncomingMessages = async (socket, username, sID) => {
   }
 };
 
+const handleIncomingChannelMessages = async (socket, channelName, sID,myName) => {
+  let incomingMsgs = socket.subscribe(channelName, {
+    data: { type: "channel", sessionID: sID },
+  });
+  for await (let Msg of incomingMsgs) {
+    if (Msg.from !== myName) {
+      console.log(
+        chalk.green.bold(`${Msg.from}: `) + chalk.magenta(`${Msg.msg.message} `)
+      );
+    }
+  }
+};
+
 const handleSocketConnect = async (socket, sID, recipient) => {
   for await (let event of socket.listener("connect")) {
     socket.transmit("auth", { sessionID: sID });
@@ -107,7 +120,6 @@ const handleSocketConnect = async (socket, sID, recipient) => {
 const handleChannelConnect = async (socket, sID, channelName) => {
   for await (let event of socket.listener("connect")) {
     socket.transmit("auth", { sessionID: sID });
-
     while (true) {
       let msg = await prompt({
         type: "input",
@@ -135,11 +147,13 @@ const chat = async (recipient, type) => {
       });
 
       handleSocketError(socket, sID, username);
-      handleIncomingMessages(socket, username, sID);
 
-      if (type === "PM") handleSocketConnect(socket, sID, recipient);
+      if (type === "PM") {
+        handleIncomingMessages(socket, username, sID);
+        handleSocketConnect(socket, sID, recipient);
+      }
       if (type === "JC") {
-        socket.subscribe(recipient, { data: { type: "channel" } });
+        handleIncomingChannelMessages(socket, recipient, sID, username);
         handleChannelConnect(socket, sID, recipient);
       }
     } catch (axiosError) {
@@ -167,11 +181,32 @@ const addNewFriend = async (username) => {
   }
 };
 
-const addNewChannel = async (channelNamw) => {
+const getAllPublicChannels = async () => {
+  try {
+    const { sID } = await getCurrentUser();
+    const response = await axios.get(`${API_BASE_URL}/api/channels/`, {
+      headers: { "X-sessionID": sID, "Content-Type": "application/json" },
+    });
+    const channels = response.data.list.map((channel) => {
+      const description = channel.description || "No description available";
+      return {
+        message:
+          chalk.bold.yellow(channel.name) + ": " + chalk.dim(description),
+        value: channel.name,
+        name: channel.name,
+      };
+    });
+    return channels;
+  } catch (error) {
+    console.error("Error fetching public channels:", error.message);
+  }
+};
+
+const addNewChannel = async (channelName, description) => {
   try {
     const { sID } = await getCurrentUser();
     const response = await axios.post(
-      `${API_BASE_URL}/api/channels/add?name=${channelNamw}`,
+      `${API_BASE_URL}/api/channels/add?name=${channelName}&desc=${description}`,
       {},
       {
         headers: { "X-sessionID": sID, "Content-Type": "application/json" },
@@ -179,8 +214,15 @@ const addNewChannel = async (channelNamw) => {
     );
     console.log(response.data.message);
   } catch (error) {
-    console.error("Error adding new friend:", error.message);
+    console.error("Error adding new Channel:", error.message);
   }
 };
 
-export { chat, login, register, addNewFriend, addNewChannel };
+export {
+  chat,
+  login,
+  register,
+  addNewFriend,
+  addNewChannel,
+  getAllPublicChannels,
+};

@@ -33,7 +33,7 @@ const setupMiddlewares = () => {
   app.use("/api/register", registerRoute);
   app.use("/api/login", loginRoute);
   app.use("/api/chat", restrictToLoggedinUserOnly, chatRoute);
-  app.use("/channels", restrictToLoggedinUserOnly, channelRoute);
+  app.use("/api/channels", restrictToLoggedinUserOnly, channelRoute);
 };
 
 const setupSocketMiddleware = () => {

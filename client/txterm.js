@@ -1,9 +1,16 @@
 #!/usr/bin/env node
-import { login, register, chat, addNewFriend, addNewChannel } from "./index.js";
+import {
+  login,
+  register,
+  chat,
+  addNewFriend,
+  addNewChannel,
+  getAllPublicChannels,
+} from "./index.js";
 import cfonts from "cfonts";
 import { program } from "commander";
 import pkg from "enquirer";
-const { prompt } = pkg;
+const { prompt, Select } = pkg;
 
 const printWelcomeMessage = () => {
   cfonts.say("TxTerm", {
@@ -64,12 +71,37 @@ program
       chat(options, "PM");
     }
   )
-  .option("-j, --join <channel>", "join a channel", async (options) => {
+  .option("-j, --join", "join a channel", async () => {
     printWelcomeMessage();
-    chat(options, "JC");
+    const list = await getAllPublicChannels();
+
+    const prompt = new Select({
+      name: "channel",
+      message: "Select the channel you want to join",
+      choices: list,
+    });
+
+    prompt
+      .run()
+      .then((answer) => {
+        chat(answer, "JC");
+      })
+      .catch(console.error);
   })
-  .option("-C, --create <recipient>", "create a channel", async (options) => {
-    addNewChannel(options);
+  .option("-C, --create", "create a channel", async () => {
+    const response = await prompt([
+      {
+        type: "input",
+        name: "channelName",
+        message: "Enter new channel name",
+      },
+      {
+        type: "input",
+        name: "description",
+        message: "Enter channel description",
+      },
+    ]);
+    addNewChannel(response.channelName, response.description);
   })
   .option("-a, --add <username>", "Add a new friend", async (options) => {
     addNewFriend(options);
