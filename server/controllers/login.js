@@ -45,12 +45,10 @@ const handleUserLogin = async (req, res) => {
     }
     const isCorrect = await verifyPassword(usr.password, password);
     if (isCorrect) {
-      // console.log("hello");
       const token = createTokenForUser(usr);
       console.log(token);
 
       res.json({"uid": token,"user":usr});
-      // return res.redirect("/chat");
     } else {
       res.json({ message: "Incorrect password" });
     }
