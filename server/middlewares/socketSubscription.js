@@ -1,4 +1,5 @@
 import { checkAuth } from "./authentication.js";
+import { Channel } from "../models/channels.js";
 
 const handleSocketSubscription = async (middlewareStream) => {
   for await (let action of middlewareStream) {
@@ -25,7 +26,7 @@ const handleSubscriptionAction = async (action) => {
 
 const handleSelfSubscription = async (action) => {
   const realUsername = (await checkAuth(action.data.sessionID)).username;
-  if (action.channel !== realUsername) {
+  if (isPublicChannel(action.channel) || action.channel !== realUsername) {
     console.log(realUsername);
     action.block("Unauthorized");
     action.socket.disconnect(3201, "Bad User");
@@ -43,8 +44,8 @@ const handleChannelSubscription = (action) => {
 };
 
 const isPublicChannel = (channel) => {
-  // Testing
-  return true;
+  const res = Channel.exists({ name: channel, isPublic: true });
+  return res;
 };
 
 export { handleSocketSubscription };
