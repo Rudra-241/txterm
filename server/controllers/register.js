@@ -1,5 +1,6 @@
 import { hashPassword } from "../services/hashPasswords.js";
 import { user } from "../models/user.js";
+import { logger } from "../commons/logger.js";
 
 const handleUserRegistration = async (req, res) => {
   try {
@@ -19,7 +20,7 @@ const handleUserRegistration = async (req, res) => {
 
     res.json({ message: "User registered successfully", entry });
   } catch (error) {
-    console.error(error);
+    logger.error("Registration failed", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

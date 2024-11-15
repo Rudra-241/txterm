@@ -4,6 +4,7 @@ import {
   validateToken,
   createTokenForUser,
 } from "../services/authentication.js";
+import { logger } from "../commons/logger.js";
 
 const verifyPassword = async (storedHash, passwordAttempt) => {
   const [salt, key] = storedHash.split(":");
@@ -46,14 +47,13 @@ const handleUserLogin = async (req, res) => {
     const isCorrect = await verifyPassword(usr.password, password);
     if (isCorrect) {
       const token = createTokenForUser(usr);
-      console.log(token);
-
+      logger.info("User logged in", username);
       res.json({"uid": token,"user":usr});
     } else {
       res.json({ message: "Incorrect password" });
     }
   } catch (error) {
-    console.error(error);
+    logger.error("Login failed", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

@@ -1,5 +1,6 @@
 import { checkAuth } from "./authentication.js";
 import { Channel } from "../models/channels.js";
+import { logger } from "../commons/logger.js";
 
 const handleSocketSubscription = async (middlewareStream) => {
   for await (let action of middlewareStream) {
@@ -17,7 +18,7 @@ const handleSubscriptionAction = async (action) => {
       await handleSelfSubscription(action);
       break;
     case "channel":
-      handleChannelSubscription(action);
+      await handleChannelSubscription(action);
       break;
     default:
       action.block("Invalid subscription type");
@@ -26,8 +27,8 @@ const handleSubscriptionAction = async (action) => {
 
 const handleSelfSubscription = async (action) => {
   const realUsername = (await checkAuth(action.data.sessionID)).username;
-  if (isPublicChannel(action.channel) || action.channel !== realUsername) {
-    console.log(realUsername);
+  if ((await isPublicChannel(action.channel)) || action.channel !== realUsername) {
+    logger.warn("Blocked self-subscription", realUsername);
     action.block("Unauthorized");
     action.socket.disconnect(3201, "Bad User");
   } else {
@@ -35,17 +36,17 @@ const handleSelfSubscription = async (action) => {
   }
 };
 
-const handleChannelSubscription = (action) => {
-  if (isPublicChannel(action.channel)) {
+const handleChannelSubscription = async (action) => {
+  if (await isPublicChannel(action.channel)) {
     action.allow();
   } else {
     action.block("Not a public channel");
   }
 };
 
-const isPublicChannel = (channel) => {
-  const res = Channel.exists({ name: channel, isPublic: true });
-  return res;
+const isPublicChannel = async (channel) => {
+  const res = await Channel.exists({ name: channel, isPublic: true });
+  return res != null;
 };
 
 export { handleSocketSubscription };

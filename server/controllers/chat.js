@@ -1,8 +1,8 @@
 import { user } from "../models/user.js";
+import { setSocketUser } from "../commons/sessions.js";
 
-const onlineUsersAndtheirSocketIDs = new Map([]);
-const createPrivateRoom = (req, res) => {
-  onlineUsersAndtheirSocketIDs.set(req.get("socketID"), req.user.username);
+const createPrivateRoom = async (req, res) => {
+  await setSocketUser(req.get("socketID"), req.user.username);
   res.json({ message: "succesfully connected" });
 };
 
@@ -25,4 +25,18 @@ const addNewFriend = async (req, res) => {
   return res.json({ message: "success" });
 };
 
-export { onlineUsersAndtheirSocketIDs, createPrivateRoom, addNewFriend };
+const getFriends = async (req, res) => {
+  const me = await user
+    .findById(req.user._id)
+    .populate("friends", "username");
+  const list = (me?.friends ?? []).map((friend) => ({
+    username: friend.username,
+  }));
+  return res.json({ list });
+};
+
+export {
+  createPrivateRoom,
+  addNewFriend,
+  getFriends,
+};

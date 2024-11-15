@@ -2,109 +2,138 @@
 import {
   login,
   register,
-  chat,
   addNewFriend,
   addNewChannel,
   getAllPublicChannels,
-} from "./index.js";
-import cfonts from "cfonts";
+} from "./api.js";
+import { chat } from "./chat.js";
+import { mainMenu, printWelcomeMessage } from "./menu.js";
+import { registerExitHandlers, gracefulExit } from "./shutdown.js";
+import chalk from "chalk";
 import { program } from "commander";
 import pkg from "enquirer";
+import pkgJson from "./package.json" with { type: "json" };
 const { prompt, Select } = pkg;
 
-const printWelcomeMessage = () => {
-  cfonts.say("TxTerm", {
-    font: "block",
-    align: "center",
-    colors: ["red", "#f80"],
-    background: "transparent",
-    letterSpacing: 1,
-    lineHeight: 0.5,
-    space: true,
-    maxLength: "0",
-    gradient: ["red", "#f80"],
-    independentGradient: true,
-    transitionGradient: true,
-    rawMode: false,
-    env: "node",
-  });
-};
+registerExitHandlers();
+
+// Wrap a command action so any failure exits cleanly instead of surfacing as an
+// unhandled rejection. A cancelled prompt (Ctrl+C) rejects with an empty value,
+// which we treat as a normal "Goodbye" rather than an error.
+const withErrorHandling =
+  (action) =>
+  async (...args) => {
+    try {
+      await action(...args);
+    } catch (error) {
+      const message = error?.message ?? error;
+      if (!message) {
+        gracefulExit(0, chalk.yellow("\nGoodbye!"));
+      } else {
+        gracefulExit(1, chalk.red(`Error: ${message}`));
+      }
+    }
+  };
 
 program
-  .version("1.0.0")
+  .version(pkgJson.version)
   .description("A simple CLI texting app")
-  .option("-l, --login", "Login to txterm", async () => {
-    const response = await prompt([
-      {
-        type: "input",
-        name: "username",
-        message: "What is your username?",
-      },
-      {
-        type: "password",
-        name: "password",
-        message: "What is your password?",
-      },
-    ]);
-    login(response.username, response.password);
-  })
-  .option("-r, --register", "Regsiter to txterm", async () => {
-    const response = await prompt([
-      {
-        type: "input",
-        name: "username",
-        message: "What is your username?",
-      },
-      {
-        type: "password",
-        name: "password",
-        message: "What is your password?",
-      },
-    ]);
-    register(response.username, response.password);
-  })
+  .option(
+    "-l, --login",
+    "Login to txterm",
+    withErrorHandling(async () => {
+      const response = await prompt([
+        {
+          type: "input",
+          name: "username",
+          message: "What is your username?",
+        },
+        {
+          type: "password",
+          name: "password",
+          message: "What is your password?",
+        },
+      ]);
+      login(response.username, response.password);
+    })
+  )
+  .option(
+    "-r, --register",
+    "Regsiter to txterm",
+    withErrorHandling(async () => {
+      const response = await prompt([
+        {
+          type: "input",
+          name: "username",
+          message: "What is your username?",
+        },
+        {
+          type: "password",
+          name: "password",
+          message: "What is your password?",
+        },
+      ]);
+      register(response.username, response.password);
+    })
+  )
   .option(
     "-c, --chat <recipient>",
     "private message someone",
-    async (options) => {
+    withErrorHandling(async (options) => {
       printWelcomeMessage();
       chat(options, "PM");
-    }
+    })
   )
-  .option("-j, --join", "join a channel", async () => {
-    printWelcomeMessage();
-    const list = await getAllPublicChannels();
+  .option(
+    "-j, --join",
+    "join a channel",
+    withErrorHandling(async () => {
+      printWelcomeMessage();
+      const list = await getAllPublicChannels();
+      if (!list) {
+        throw new Error("Could not fetch channels. Is the server running?");
+      }
 
-    const prompt = new Select({
-      name: "channel",
-      message: "Select the channel you want to join",
-      choices: list,
-    });
+      const select = new Select({
+        name: "channel",
+        message: "Select the channel you want to join",
+        choices: list,
+      });
 
-    prompt
-      .run()
-      .then((answer) => {
-        chat(answer, "JC");
-      })
-      .catch(console.error);
-  })
-  .option("-C, --create", "create a channel", async () => {
-    const response = await prompt([
-      {
-        type: "input",
-        name: "channelName",
-        message: "Enter new channel name",
-      },
-      {
-        type: "input",
-        name: "description",
-        message: "Enter channel description",
-      },
-    ]);
-    addNewChannel(response.channelName, response.description);
-  })
-  .option("-a, --add <username>", "Add a new friend", async (options) => {
-    addNewFriend(options);
-  });
+      const answer = await select.run();
+      chat(answer, "JC");
+    })
+  )
+  .option(
+    "-C, --create",
+    "create a channel",
+    withErrorHandling(async () => {
+      const response = await prompt([
+        {
+          type: "input",
+          name: "channelName",
+          message: "Enter new channel name",
+        },
+        {
+          type: "input",
+          name: "description",
+          message: "Enter channel description",
+        },
+      ]);
+      addNewChannel(response.channelName, response.description);
+    })
+  )
+  .option(
+    "-a, --add <username>",
+    "Add a new friend",
+    withErrorHandling(async (options) => {
+      addNewFriend(options);
+    })
+  );
 
-program.parse(process.argv);
+// No flags → drop into the interactive menu; otherwise run the requested flag.
+if (process.argv.slice(2).length === 0) {
+  withErrorHandling(mainMenu)();
+} else {
+  program.parse(process.argv);
+}

@@ -8,6 +8,9 @@ import {
   checkAuth,
 } from "./middlewares/authentication.js";
 import { handleSocketSubscription } from "./middlewares/socketSubscription.js";
+import { connectToRedis } from "./commons/redis.js";
+import { removeSocket } from "./commons/sessions.js";
+import { logger } from "./commons/logger.js";
 import { router as registerRoute } from "./routes/register.js";
 import { router as loginRoute } from "./routes/login.js";
 import { router as chatRoute } from "./routes/chat.js";
@@ -20,10 +23,10 @@ const agServer = socketClusterServer.attach(server, { path: "/api/chat" });
 
 const connectToDatabase = async () => {
   try {
-    await mongoose.connect("mongodb://127.0.0.1:27017/chat-app");
-    console.log("MongoDB connected");
+    await mongoose.connect(process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/chat-app");
+    logger.info("MongoDB connected");
   } catch (err) {
-    console.log("Error connecting to MongoDB", err);
+    logger.error("Error connecting to MongoDB", err);
   }
 };
 
@@ -47,7 +50,7 @@ const handleAuth = async (socket) => {
       socket.disconnect(3200, "Unauthorized");
     } else {
       socket.authState = socket.AUTHENTICATED;
-      console.log("Socket authenticated", user);
+      logger.info("Socket authenticated", user.username);
       handleChannelMessages(socket, user);
       handlePrivateMessages(socket, user);
     }
@@ -65,7 +68,6 @@ const handlePrivateMessages = async (socket, user) => {
       msg: data,
       from: user.username,
     });
-    console.log(data, socket.id);
   }
 };
 
@@ -80,7 +82,6 @@ const handleChannelMessages = async (socket, user) => {
       msg: data,
       from: user.username,
     });
-    console.log(data, socket.id);
   }
 };
 
@@ -91,21 +92,23 @@ const handleSocketConnection = async () => {
     agServer
       .listener("disconnection")
       .once()
-      .then((obj) => {
-        console.log(obj.reason, socket.id);
+      .then(async (obj) => {
+        await removeSocket(obj.socket.id);
+        logger.debug("Socket disconnected", socket.id, obj.reason);
       });
-    console.log(`${socket.id} connected! ${socket.authState}`);
+    logger.debug("Socket connected", socket.id, socket.authState);
   }
 };
 
 const startServer = () => {
   server.listen(port, () => {
-    console.log(`App listening on port ${port}`);
+    logger.info(`App listening on port ${port}`);
   });
 };
 
 const initializeApp = async () => {
   await connectToDatabase();
+  await connectToRedis();
   setupMiddlewares();
   setupSocketMiddleware();
   handleSocketConnection();
