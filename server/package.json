@@ -17,7 +17,7 @@
     "cookie-parser": "^1.4.6",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.4.3",
+    "mongoose": "^8.9.5",
     "socketcluster-server": "^19.1.0"
   },
   "type": "module"
