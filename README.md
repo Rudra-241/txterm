@@ -1,5 +1,5 @@
 # txterm
-
+txterm is a lightweight, CLI-based IRC-style chat system built using Node.js and SocketCluster. It features a simple terminal interface and supports real-time communication over WebSockets. Users can join channels, send broadcast and private messages all from the command line. The system showcases a modular client-server architecture using publish/subscribe patterns, with support for multi-channel communication, event-based messaging, and a reactive design inspired by classic IRC clients.
 
 ## Commands
 
