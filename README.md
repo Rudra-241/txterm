@@ -60,7 +60,8 @@ To set up `txterm-server`, follow these steps:
 1. **Clone the repository:**
 
    ```sh
-   git clone https://github.com/Rudra-241/txterm.git```
+   git clone https://github.com/Rudra-241/txterm.git
+   ```
 2. **Navigate to the server directory**
    ```sh
    cd txterm/server
