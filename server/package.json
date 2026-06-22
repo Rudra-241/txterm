@@ -1,6 +1,6 @@
 {
   "name": "txterm-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Server for CLI texting app",
   "main": "index.js",
   "scripts": {
@@ -10,15 +10,16 @@
   "author": "Rudra",
   "license": "MIT",
   "devDependencies": {
-    "dotenv": "^16.4.5",
-    "nodemon": "^3.1.4"
+    "nodemon": "^3.1.14"
   },
   "dependencies": {
-    "cookie-parser": "^1.4.6",
-    "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.9.5",
-    "socketcluster-server": "^19.1.0"
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.4.2",
+    "express": "^4.22.2",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^8.24.0",
+    "redis": "^6.0.0",
+    "socketcluster-server": "^19.2.2"
   },
   "type": "module"
 }
