@@ -1,6 +1,32 @@
 # txterm
 txterm is a lightweight, CLI-based IRC-style chat system built using Node.js and SocketCluster. It features a simple terminal interface and supports real-time communication over WebSockets. Users can join channels, send broadcast and private messages all from the command line. The system showcases a modular client-server architecture using publish/subscribe patterns, with support for multi-channel communication, event-based messaging, and a reactive design inspired by classic IRC clients.
 
+## Screenshots
+
+Launch txterm to land on the welcome screen and login menu:
+
+<p align="center">
+  <img src="screenshots/welcome.png" alt="txterm welcome screen" width="600">
+</p>
+
+Once logged in, an interactive menu gives you access to everything:
+
+<p align="center">
+  <img src="screenshots/menu.png" alt="txterm main menu" width="500">
+</p>
+
+Browse and join public channels:
+
+<p align="center">
+  <img src="screenshots/channels.png" alt="txterm channel picker" width="550">
+</p>
+
+Chat in real time, with messages delivered instantly over WebSockets:
+
+<p align="center">
+  <img src="screenshots/chat.png" alt="txterm real-time chat between two users" width="900">
+</p>
+
 ## Commands
 
 - `-V, --version`  
